@@ -137,7 +137,10 @@ class SongPage extends StatelessWidget {
                                             ? 'Removed from favorites'
                                             : 'Added to favorites',
                                       ),
+                                      backgroundColor: Colors.green.shade700,
+                                      behavior: SnackBarBehavior.floating,
                                       duration: const Duration(seconds: 2),
+                                      
                                     ),
                                   );
                                 },

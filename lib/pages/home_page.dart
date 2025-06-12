@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:music_app/components/my_drawer.dart';
 import 'package:music_app/models/playlist_provider.dart';
 import 'package:music_app/models/song.dart';
+import 'package:music_app/pages/favorites_page.dart';
 import 'package:music_app/pages/settings_page.dart'; // Import SettingsPage here
 import 'package:music_app/pages/song_page.dart';
 import 'package:music_app/utils/permissions.dart';
@@ -17,7 +18,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0; // 0 = Home, 1 = Settings
+  int _selectedIndex = 0; // 0 = Home, 1 = Favorites, 2 = Settings
 
   //get the playlist provider
   late final PlaylistProvider playlistProvider;
@@ -82,8 +83,10 @@ class _HomePageState extends State<HomePage> {
                 'Scanning device storage 🎵',
                 style: TextStyle(
                   fontSize: 14,
-                  color:
-                      Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onBackground
+                      .withOpacity(0.6),
                 ),
               ),
             ],
@@ -127,6 +130,7 @@ class _HomePageState extends State<HomePage> {
     // Pages can be Home content or SettingsPage
     final List<Widget> pages = [
       _buildHomeContent(),
+      const FavoritesPage(),
       const SettingsPage(),
     ];
 
@@ -136,11 +140,17 @@ class _HomePageState extends State<HomePage> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_selectedIndex == 0 ? "P L A Y L I S T" : "S E T T I N G S"),
+            Text(
+              _selectedIndex == 0
+                  ? "P L A Y L I S T"
+                  : _selectedIndex == 1
+                      ? "F A V O R I T E S"
+                      : "S E T T I N G S",
+            ),
           ],
         ),
         centerTitle: true,
-        actions: _selectedIndex == 0
+        actions: _selectedIndex == 0 || _selectedIndex == 1
             ? [
                 Padding(
                   padding: const EdgeInsets.only(right: 8.0),
@@ -153,7 +163,11 @@ class _HomePageState extends State<HomePage> {
 
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: const Text('Refreshing playlist...'),
+                          content: Text(
+                            _selectedIndex == 0
+                                ? 'Refreshing playlist...'
+                                : 'Refreshing favorites...',
+                          ),
                           backgroundColor: Colors.green.shade700,
                           behavior: SnackBarBehavior.floating,
                           duration: const Duration(seconds: 2),
@@ -161,12 +175,21 @@ class _HomePageState extends State<HomePage> {
                       );
 
                       try {
-                        await playlistProvider.loadSongsFromLocalStorage();
+                        if (_selectedIndex == 0) {
+                          await playlistProvider.init();
+                        } else if (_selectedIndex == 1) {
+                          await playlistProvider
+                              .init(); // refresh favorites + playlist
+                        }
 
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: const Text('Playlist refreshed!'),
+                              content: Text(
+                        _selectedIndex == 0
+                          ? 'Playlist refreshed!'
+                          : 'Favorites refreshed!',
+                      ),
                               backgroundColor: Colors.green.shade700,
                               behavior: SnackBarBehavior.floating,
                               duration: const Duration(seconds: 2),
@@ -192,7 +215,6 @@ class _HomePageState extends State<HomePage> {
               ]
             : null,
       ),
-
       drawer: MyDrawer(
         onSelectPage: (index) {
           setState(() {
@@ -201,7 +223,6 @@ class _HomePageState extends State<HomePage> {
           Navigator.pop(context); // Close the drawer
         },
       ),
-
       body: pages[_selectedIndex],
     );
   }
