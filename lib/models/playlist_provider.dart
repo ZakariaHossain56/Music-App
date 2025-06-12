@@ -1,8 +1,12 @@
 
+import 'dart:io';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:music_app/models/song.dart';
+import 'package:path_provider/path_provider.dart'; // optional if you want to use app directory
+import 'package:flutter_media_metadata/flutter_media_metadata.dart';
 
 class PlaylistProvider extends ChangeNotifier{
   //playlist of songs
@@ -32,6 +36,54 @@ class PlaylistProvider extends ChangeNotifier{
       ),  
   ];
 
+
+  //playlist from storage
+  Future<void> loadSongsFromLocalStorage() async {
+  final Directory dir = Directory('/storage/emulated/0/Download');
+
+  if (!dir.existsSync()) return;
+
+  final List<Song> loadedSongs = [];
+
+  for (var file in dir.listSync()) {
+    if (file.path.endsWith('.mp3')) {
+      final metadata = await MetadataRetriever.fromFile(File(file.path));
+      final String songName = metadata.trackName ?? file.uri.pathSegments.last;
+      final Object artist = metadata.trackArtistNames ?? "Unknown Artist";
+      final String artistName = artist is List<String> 
+      ? (artist).join(', ') 
+      : artist.toString();
+
+      print('Song: $songName');
+      print('Artist: $artist');
+
+      // Default album art
+      String imagePath = "assets/images/tally.jpg";
+
+      // Save embedded image
+      if (metadata.albumArt != null) {
+        final tempDir = await getTemporaryDirectory();
+        final filename = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final imageFile = File('${tempDir.path}/$filename');
+        await imageFile.writeAsBytes(metadata.albumArt!);
+        imagePath = imageFile.path;
+      }
+
+      loadedSongs.add(Song(
+        songName: songName,
+        artistName: artistName,
+        albumArtImagePath: imagePath,
+        audioPath: file.path,
+      ));
+    }
+  }
+
+  _playlist.clear();
+  _playlist.addAll(loadedSongs);
+  notifyListeners();
+}
+
+
   //current song playing index
   int? _currentSongIndex;
 
@@ -46,6 +98,7 @@ class PlaylistProvider extends ChangeNotifier{
   //constructor
   PlaylistProvider(){
     listenToDuration();
+    loadSongsFromLocalStorage(); // Auto-load on startup
     }
 
   //initially not playing

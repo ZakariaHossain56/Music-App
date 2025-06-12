@@ -37,6 +37,10 @@ dependencies:
   cupertino_icons: ^1.0.6
   provider: ^6.1.2
   audioplayers: ^6.0.0
+  just_audio: ^0.9.35     # Fully compatible
+  path_provider: ^2.1.2   # No changes needed
+  permission_handler: ^10.2.0  # Last stable for API 33
+  flutter_media_metadata: ^1.0.0  # Works with API 33
 
 dev_dependencies:
   flutter_test:

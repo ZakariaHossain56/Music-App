@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:music_app/components/my_drawer.dart';
 import 'package:music_app/models/playlist_provider.dart';
 import 'package:music_app/models/song.dart';
 import 'package:music_app/pages/song_page.dart';
+import 'package:music_app/utils/permissions.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
@@ -23,6 +26,12 @@ class _HomePageState extends State<HomePage> {
 
     //get playlist provider
     playlistProvider = Provider.of<PlaylistProvider>(context, listen: false);
+
+    // Ask for permission and load songs
+    requestStoragePermission().then((_) {
+      playlistProvider.loadSongsFromLocalStorage();
+    });
+
   }
 
   //go to a song
@@ -69,7 +78,20 @@ class _HomePageState extends State<HomePage> {
                 return ListTile(
                   title: Text(song.songName),
                   subtitle: Text(song.artistName),
-                  leading: Image.asset(song.albumArtImagePath),
+                  // leading: Image.asset(song.albumArtImagePath),
+                  leading: song.albumArtImagePath.startsWith('/')
+                  ? Image.file(
+                      File(song.albumArtImagePath),
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                    )
+                  : Image.asset(
+                      song.albumArtImagePath,
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                    ),
                   onTap: () => goToSong(index),
                 );
               },
