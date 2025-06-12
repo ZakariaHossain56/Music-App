@@ -41,6 +41,8 @@ dependencies:
   path_provider: ^2.1.2   # No changes needed
   permission_handler: ^10.2.0  # Last stable for API 33
   flutter_media_metadata: ^1.0.0  # Works with API 33
+  shared_preferences: ^2.1.1
+  marquee: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +70,7 @@ flutter:
   assets:
     - assets/audio/
     - assets/images/
+    - assets/images/tally.jpg
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
