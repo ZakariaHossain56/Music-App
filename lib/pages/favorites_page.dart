@@ -15,21 +15,34 @@ class FavoritesPage extends StatefulWidget {
 
 class _FavoritesPageState extends State<FavoritesPage> {
   bool _isRefreshing = false;
-
   late PlaylistProvider playlistProvider;
+
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     playlistProvider = Provider.of<PlaylistProvider>(context, listen: false);
-    //_refreshFavorites(); // Initial load
+
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _refreshFavorites() async {
     if (_isRefreshing) return;
     setState(() => _isRefreshing = true);
 
-    await playlistProvider.init(); // This will reload both playlist & favorites
+    await playlistProvider.init();
 
     if (mounted) {
       setState(() => _isRefreshing = false);
@@ -46,7 +59,6 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
   void goToSong(int actualIndex) {
     playlistProvider.currentSongIndex = actualIndex;
-
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const SongPage()),
@@ -62,69 +74,103 @@ class _FavoritesPageState extends State<FavoritesPage> {
           final favoriteIndices = value.favoriteSongIndices.toList();
           final List<Song> playlist = value.playlist;
 
-          if (favoriteIndices.isEmpty) {
-            return Center(
-              child: Text(
-                "No favorite songs yet.",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onBackground
-                      .withOpacity(0.6),
+          final filteredFavorites = favoriteIndices
+              .map((i) => (i, playlist[i]))
+              .where((entry) =>
+                  entry.$2.songName.toLowerCase().contains(_searchQuery) ||
+                  entry.$2.artistName.toLowerCase().contains(_searchQuery))
+              .toList();
+
+          return Column(
+            children: [
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search favorites...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () => _searchController.clear(),
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ),
-            );
-          }
 
-          return ListView.builder(
-            itemCount: favoriteIndices.length,
-            itemBuilder: (context, i) {
-              final actualIndex = favoriteIndices[i];
-              final song = playlist[actualIndex];
-
-              return ListTile(
-                leading: song.albumArtImagePath.startsWith('/')
-                    ? Image.file(
-                        File(song.albumArtImagePath),
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                      )
-                    : Image.asset(
-                        song.albumArtImagePath,
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                      ),
-                title: Text(
-                  song.songName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(song.artistName),
-                onTap: () => goToSong(actualIndex),
-                trailing: IconButton(
-                  icon: const Icon(Icons.favorite, color: Colors.red),
-                  onPressed: () {
-                    final wasFavorite = playlistProvider.favoriteSongIndices
-                        .contains(actualIndex);
-                    playlistProvider.toggleFavorite(actualIndex);
-
-                    if (wasFavorite) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Removed from favorites'),
-                          backgroundColor: Colors.redAccent,
-                          behavior: SnackBarBehavior.floating,
-                          duration: const Duration(seconds: 2),
+              // Song List
+              Expanded(
+                child: filteredFavorites.isEmpty
+                    ? Center(
+                        child: Text(
+                          _searchQuery.isNotEmpty
+                              ? "No matching favorites."
+                              : "No favorite songs yet.",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onBackground
+                                .withOpacity(0.6),
+                          ),
                         ),
-                      );
-                    }
-                  },
-                ),
-              );
-            },
+                      )
+                    : ListView.builder(
+                        itemCount: filteredFavorites.length,
+                        itemBuilder: (context, index) {
+                          final actualIndex = filteredFavorites[index].$1;
+                          final song = filteredFavorites[index].$2;
+
+                          return ListTile(
+                            leading: song.albumArtImagePath.startsWith('/')
+                                ? Image.file(
+                                    File(song.albumArtImagePath),
+                                    width: 50,
+                                    height: 50,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Image.asset(
+                                    song.albumArtImagePath,
+                                    width: 50,
+                                    height: 50,
+                                    fit: BoxFit.cover,
+                                  ),
+                            title: Text(
+                              song.songName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Text(song.artistName),
+                            onTap: () => goToSong(actualIndex),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.favorite, color: Colors.red),
+                              onPressed: () {
+                                final wasFavorite = value.favoriteSongIndices.contains(actualIndex);
+                                value.toggleFavorite(actualIndex);
+
+                                if (wasFavorite) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('Removed from favorites'),
+                                      backgroundColor: Colors.redAccent,
+                                      behavior: SnackBarBehavior.floating,
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           );
         },
       ),

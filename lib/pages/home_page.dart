@@ -38,10 +38,10 @@ class _HomePageState extends State<HomePage> {
     playlistProvider = Provider.of<PlaylistProvider>(context, listen: false);
 
     _searchController.addListener(() {
-    setState(() {
-      _searchQuery = _searchController.text.toLowerCase();
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
     });
-  });
 
     // Ask for permission and trigger init()
     requestStoragePermission().then((_) {
@@ -268,6 +268,9 @@ class _HomePageState extends State<HomePage> {
         onSelectPage: (index) {
           setState(() {
             _selectedIndex = index;
+            if (index != 0) {
+              _searchController.clear();
+            }
           });
           Navigator.pop(context); // Close the drawer
         },
