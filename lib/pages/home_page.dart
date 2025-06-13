@@ -23,6 +23,10 @@ class _HomePageState extends State<HomePage> {
   //get the playlist provider
   late final PlaylistProvider playlistProvider;
 
+  //search controller and query
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   //check if the playlist is refreshing
   bool _isRefreshing = false;
 
@@ -32,6 +36,12 @@ class _HomePageState extends State<HomePage> {
 
     // Get playlist provider
     playlistProvider = Provider.of<PlaylistProvider>(context, listen: false);
+
+    _searchController.addListener(() {
+    setState(() {
+      _searchQuery = _searchController.text.toLowerCase();
+    });
+  });
 
     // Ask for permission and trigger init()
     requestStoragePermission().then((_) {
@@ -53,10 +63,24 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+//dispose the search controller
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   // Home page content extracted as a widget
   Widget _buildHomeContent() {
     return Consumer<PlaylistProvider>(builder: (context, value, child) {
       final List<Song> playlist = value.playlist;
+
+      final List<Song> filteredList = _searchQuery.isEmpty
+          ? playlist
+          : playlist.where((song) {
+              return song.songName.toLowerCase().contains(_searchQuery) ||
+                  song.artistName.toLowerCase().contains(_searchQuery);
+            }).toList();
 
       if (playlist.isEmpty) {
         return Center(
@@ -94,33 +118,58 @@ class _HomePageState extends State<HomePage> {
         );
       }
 
-      return ListView.builder(
-        itemCount: playlist.length,
-        itemBuilder: (context, index) {
-          final Song song = playlist[index];
-          return ListTile(
-            title: Text(
-              song.songName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search songs or artists...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
-            subtitle: Text(song.artistName),
-            leading: song.albumArtImagePath.startsWith('/')
-                ? Image.file(
-                    File(song.albumArtImagePath),
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                  )
-                : Image.asset(
-                    song.albumArtImagePath,
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                  ),
-            onTap: () => goToSong(index),
-          );
-        },
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: filteredList.length,
+              itemBuilder: (context, index) {
+                final Song song = filteredList[index];
+                final actualIndex = playlist.indexOf(song); // original index
+                return ListTile(
+                  title: Text(song.songName,
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(song.artistName),
+                  leading: song.albumArtImagePath.startsWith('/')
+                      ? Image.file(
+                          File(song.albumArtImagePath),
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                        )
+                      : Image.asset(
+                          song.albumArtImagePath,
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                        ),
+                  onTap: () => goToSong(actualIndex),
+                );
+              },
+            ),
+          ),
+        ],
       );
     });
   }
@@ -186,10 +235,10 @@ class _HomePageState extends State<HomePage> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                        _selectedIndex == 0
-                          ? 'Playlist refreshed!'
-                          : 'Favorites refreshed!',
-                      ),
+                                _selectedIndex == 0
+                                    ? 'Playlist refreshed!'
+                                    : 'Favorites refreshed!',
+                              ),
                               backgroundColor: Colors.green.shade700,
                               behavior: SnackBarBehavior.floating,
                               duration: const Duration(seconds: 2),
