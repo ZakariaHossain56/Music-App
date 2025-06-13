@@ -22,10 +22,25 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return  MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: HomePage(),
-      theme: Provider.of<ThemeProvider>(context).themeData,
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        if (!themeProvider.isInitialized) {
+          // Show splash/loading while theme loads
+          return const MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          );
+        }
+
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: const HomePage(),
+          theme: themeProvider.themeData,
+        );
+      },
     );
   }
 }

@@ -176,7 +176,7 @@ class SongPage extends StatelessWidget {
                           //shuffle icon
                           Icon(Icons.shuffle),
 
-                          //repeat icon
+                          //loop icon
                           Icon(Icons.repeat),
 
                           //end time
@@ -215,7 +215,7 @@ class SongPage extends StatelessWidget {
                 //playback controls
                 Row(
                   children: [
-                    //skip previous
+                    //play previous
                     Expanded(
                       child: GestureDetector(
                         onTap: value.playPreviousSong,
@@ -245,7 +245,7 @@ class SongPage extends StatelessWidget {
                       width: 20,
                     ),
 
-                    //skip forward
+                    //play next
                     Expanded(
                       child: GestureDetector(
                         onTap: value.playNextSong,

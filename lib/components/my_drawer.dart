@@ -33,7 +33,7 @@ class MyDrawer extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 25.0, top: 0),
             child: ListTile(
-              leading: const Icon(Icons.home),
+              leading: const Icon(Icons.favorite),
               title: const Text("F A V O R I T E S"),
               onTap: () => onSelectPage(1),
             ),
