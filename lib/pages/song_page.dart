@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:music_app/components/neu_box.dart';
 import 'package:music_app/models/playlist_provider.dart';
+import 'package:music_app/themes/theme_provider.dart';
 import 'package:provider/provider.dart';
 
 class SongPage extends StatelessWidget {
@@ -25,6 +26,9 @@ class SongPage extends StatelessWidget {
 
       //get current song
       final currentSong = playlist[value.currentSongIndex ?? 0];
+
+      //check for dark mode
+      final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
 
       //return Scaffold UI
       return Scaffold(
@@ -136,11 +140,15 @@ class SongPage extends StatelessWidget {
                                         wasFavorite
                                             ? 'Removed from favorites'
                                             : 'Added to favorites',
+                                        style: TextStyle(
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black, // Text color
+                                        ),
                                       ),
                                       backgroundColor: Colors.green.shade700,
                                       behavior: SnackBarBehavior.floating,
                                       duration: const Duration(seconds: 2),
-                                      
                                     ),
                                   );
                                 },
@@ -174,10 +182,71 @@ class SongPage extends StatelessWidget {
                           Text(formatTime(value.currentDuration)),
 
                           //shuffle icon
-                          Icon(Icons.shuffle),
+                          // Shuffle button
+                          IconButton(
+                            icon: Icon(
+                              Icons.shuffle,
+                              color: value.isShuffling
+                                  ? Colors.blue
+                                  : Colors.white,
+                            ),
+                            onPressed: () {
+                              value.toggleShuffle();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    value.isShuffling
+                                        ? 'Shuffle On'
+                                        : 'Shuffle Off',
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black, // Text color
+                                    ),
+                                  ),
+                                  backgroundColor: Colors.green.shade700,
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            },
+                          ),
 
-                          //loop icon
-                          Icon(Icons.repeat),
+                          // Loop button
+                          IconButton(
+                            icon: Icon(
+                              value.loopMode == LoopMode.one
+                                  ? Icons.repeat_one
+                                  : Icons.repeat,
+                              color: value.loopMode != LoopMode.off
+                                  ? Colors.blue
+                                  : Colors.white,
+                            ),
+                            onPressed: () {
+                              value.toggleLoop();
+                              String message = {
+                                LoopMode.off: "Loop Off",
+                                LoopMode.one: "Loop One",
+                                LoopMode.all: "Loop All"
+                              }[value.loopMode]!;
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    message,
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black, // Text color
+                                    ),
+                                  ),
+                                  backgroundColor: Colors.green.shade700,
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            },
+                          ),
 
                           //end time
                           Text(formatTime(value.totalDuration)),

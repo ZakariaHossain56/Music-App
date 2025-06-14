@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:music_app/models/playlist_provider.dart';
 import 'package:music_app/models/song.dart';
 import 'package:music_app/pages/song_page.dart';
+import 'package:music_app/themes/theme_provider.dart';
 import 'package:provider/provider.dart';
 
 class FavoritesPage extends StatefulWidget {
@@ -19,6 +20,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
+  
 
   @override
   void initState() {
@@ -39,16 +42,28 @@ class _FavoritesPageState extends State<FavoritesPage> {
   }
 
   Future<void> _refreshFavorites() async {
+
+    //check for dark mode
+    final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
+
+
     if (_isRefreshing) return;
     setState(() => _isRefreshing = true);
 
     await playlistProvider.init();
 
+    
+
     if (mounted) {
       setState(() => _isRefreshing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Favorites refreshed!'),
+          content: Text(
+            'Favorites refreshed!',
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black, // Text color
+            ),
+          ),
           backgroundColor: Colors.green.shade700,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
@@ -67,6 +82,10 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
   @override
   Widget build(BuildContext context) {
+
+    //check for dark mode
+    final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
+
     return Container(
       color: Theme.of(context).colorScheme.background,
       child: Consumer<PlaylistProvider>(
@@ -159,11 +178,19 @@ class _FavoritesPageState extends State<FavoritesPage> {
                                     .contains(actualIndex);
                                 value.toggleFavorite(actualIndex);
 
+                                
+
                                 if (wasFavorite) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content:
-                                          const Text('Removed from favorites'),
+                                      content: Text(
+                                        'Removed from favorites',
+                                        style: TextStyle(
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black, // Text color
+                                        ),
+                                      ),
                                       backgroundColor: Colors.redAccent,
                                       behavior: SnackBarBehavior.floating,
                                       duration: const Duration(seconds: 3),

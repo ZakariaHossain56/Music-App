@@ -8,6 +8,7 @@ import 'package:music_app/models/song.dart';
 import 'package:music_app/pages/favorites_page.dart';
 import 'package:music_app/pages/settings_page.dart'; // Import SettingsPage here
 import 'package:music_app/pages/song_page.dart';
+import 'package:music_app/themes/theme_provider.dart';
 import 'package:music_app/utils/permissions.dart';
 import 'package:provider/provider.dart';
 
@@ -30,6 +31,8 @@ class _HomePageState extends State<HomePage> {
 
   //check if the playlist is refreshing
   bool _isRefreshing = false;
+
+  
 
   @override
   void initState() {
@@ -187,6 +190,9 @@ class _HomePageState extends State<HomePage> {
       const SettingsPage(),
     ];
 
+    //check for dark mode
+    final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
@@ -220,6 +226,11 @@ class _HomePageState extends State<HomePage> {
                             _selectedIndex == 0
                                 ? 'Refreshing playlist...'
                                 : 'Refreshing favorites...',
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.white
+                                  : Colors.black, // Text color
+                            ),
                           ),
                           backgroundColor: Colors.green.shade700,
                           behavior: SnackBarBehavior.floating,
@@ -242,6 +253,11 @@ class _HomePageState extends State<HomePage> {
                                 _selectedIndex == 0
                                     ? 'Playlist refreshed!'
                                     : 'Favorites refreshed!',
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white
+                                      : Colors.black, // Text color
+                                ),
                               ),
                               backgroundColor: Colors.green.shade700,
                               behavior: SnackBarBehavior.floating,

@@ -13,28 +13,28 @@ class PlaylistProvider extends ChangeNotifier {
   //playlist of songs
   final List<Song> _playlist = [
     //song 1
-  //   Song(
-  //     songName: "On My Way",
-  //     artistName: "Sabrina Carpenter",
-  //     albumArtImagePath: "assets/images/on_my_way.png",
-  //     audioPath: "audio/On_My_Way.mp3",
-  //   ),
+    //   Song(
+    //     songName: "On My Way",
+    //     artistName: "Sabrina Carpenter",
+    //     albumArtImagePath: "assets/images/on_my_way.png",
+    //     audioPath: "audio/On_My_Way.mp3",
+    //   ),
 
-  //   //song 2
-  //   Song(
-  //     songName: "Tally",
-  //     artistName: "BLACKPINK",
-  //     albumArtImagePath: "assets/images/tally.jpg",
-  //     audioPath: "audio/Tally.mp3",
-  //   ),
+    //   //song 2
+    //   Song(
+    //     songName: "Tally",
+    //     artistName: "BLACKPINK",
+    //     albumArtImagePath: "assets/images/tally.jpg",
+    //     audioPath: "audio/Tally.mp3",
+    //   ),
 
-  //   //song 3
-  //   Song(
-  //       songName: "Jawan",
-  //       artistName: "Arijit Singh",
-  //       albumArtImagePath: "assets/images/chaleya.jpg",
-  //       audioPath: "audio/Chaleya.mp3"),
-     ];
+    //   //song 3
+    //   Song(
+    //       songName: "Jawan",
+    //       artistName: "Arijit Singh",
+    //       albumArtImagePath: "assets/images/chaleya.jpg",
+    //       audioPath: "audio/Chaleya.mp3"),
+  ];
 
   //favorite songs
   // A set to keep track of favorite song indices
@@ -65,6 +65,9 @@ class PlaylistProvider extends ChangeNotifier {
 
   //initially not playing
   bool _isPlaying = false;
+
+  bool _isShuffling = false;
+  LoopMode _loopMode = LoopMode.off; // We'll define this enum below
 
   //constructor
   PlaylistProvider() {
@@ -250,6 +253,28 @@ class PlaylistProvider extends ChangeNotifier {
     }
   }
 
+  //toggle loop mode
+  void toggleShuffle() {
+    _isShuffling = !_isShuffling;
+    notifyListeners();
+  }
+
+// Toggle loop mode
+  void toggleLoop() {
+    switch (_loopMode) {
+      case LoopMode.off:
+        _loopMode = LoopMode.one;
+        break;
+      case LoopMode.one:
+        _loopMode = LoopMode.all;
+        break;
+      case LoopMode.all:
+        _loopMode = LoopMode.off;
+        break;
+    }
+    notifyListeners();
+  }
+
   //listen to duration
   void listenToDuration() {
     //listen for total duration
@@ -264,10 +289,39 @@ class PlaylistProvider extends ChangeNotifier {
       notifyListeners();
     });
 
-    //listen for song completion
+    // //listen for song completion
+    // _audioPlayer.onPlayerComplete.listen((event) {
+    //   playNextSong();
+    // });
+
     _audioPlayer.onPlayerComplete.listen((event) {
-      playNextSong();
+      if (_loopMode == LoopMode.one) {
+        play(); // replay the current song
+      } else if (_isShuffling) {
+        _currentSongIndex = _getRandomSongIndex(exclude: _currentSongIndex);
+        play();
+      } else if (_loopMode == LoopMode.all) {
+        playNextSong(); // already wraps to 0 at the end
+      } else {
+        // LoopMode.off
+        if (_currentSongIndex! < _playlist.length - 1) {
+          playNextSong();
+        } else {
+          _isPlaying = false;
+          notifyListeners();
+        }
+      }
     });
+  }
+
+  //play a random song
+  int _getRandomSongIndex({int? exclude}) {
+    final indices = List<int>.generate(_playlist.length, (i) => i);
+    if (exclude != null && indices.length > 1) {
+      indices.remove(exclude);
+    }
+    indices.shuffle();
+    return indices.first;
   }
 
   //dispose audio player
@@ -308,6 +362,10 @@ class PlaylistProvider extends ChangeNotifier {
     return File(path.join(dir.path, 'favorites.json'));
   }
 
+  //get shuffling and loop mode
+  bool get isShuffling => _isShuffling;
+  LoopMode get loopMode => _loopMode;
+
   //S E T T E R S
   set currentSongIndex(int? newIndex) {
     //update current song index
@@ -319,4 +377,10 @@ class PlaylistProvider extends ChangeNotifier {
     //update UI
     notifyListeners();
   }
+}
+
+enum LoopMode {
+  off,
+  one,
+  all,
 }
