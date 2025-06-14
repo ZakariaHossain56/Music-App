@@ -61,7 +61,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
           content: Text(
             'Favorites refreshed!',
             style: TextStyle(
-              color: isDark ? Colors.white : Colors.black, // Text color
+              color: isDark ? Colors.white : Colors.white, // Text color
             ),
           ),
           backgroundColor: Colors.green.shade700,
@@ -188,7 +188,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
                                         style: TextStyle(
                                           color: isDark
                                               ? Colors.white
-                                              : Colors.black, // Text color
+                                              : Colors.white, // Text color
                                         ),
                                       ),
                                       backgroundColor: Colors.redAccent,

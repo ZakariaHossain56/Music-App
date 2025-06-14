@@ -229,7 +229,7 @@ class _HomePageState extends State<HomePage> {
                             style: TextStyle(
                               color: isDark
                                   ? Colors.white
-                                  : Colors.black, // Text color
+                                  : Colors.white, // Text color
                             ),
                           ),
                           backgroundColor: Colors.green.shade700,
@@ -256,7 +256,7 @@ class _HomePageState extends State<HomePage> {
                                 style: TextStyle(
                                   color: isDark
                                       ? Colors.white
-                                      : Colors.black, // Text color
+                                      : Colors.white, // Text color
                                 ),
                               ),
                               backgroundColor: Colors.green.shade700,

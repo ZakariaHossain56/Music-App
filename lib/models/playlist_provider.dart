@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:music_app/models/song.dart';
+import 'package:music_app/utils/permissions.dart';
 import 'package:path_provider/path_provider.dart'; // optional if you want to use app directory
 import 'package:flutter_media_metadata/flutter_media_metadata.dart';
 import 'dart:convert'; // For json
@@ -137,6 +138,87 @@ class PlaylistProvider extends ChangeNotifier {
     }
   }
 
+
+//   Future<void> loadSongsFromLocalStorage() async {
+//   final hasPermission = await requestStoragePermission();
+//   if (!hasPermission) return;
+
+//   final List<Directory> commonDirs = [
+//     Directory('/storage/emulated/0/Music'),
+//     Directory('/storage/emulated/0/Download'),
+//     // Directory('/storage/emulated/0/Podcasts'),
+//   ];
+
+//   final List<Song> loadedSongs = [];
+//   int filesProcessed = 0;
+//   debugPrint("Starting song scan...");
+
+//   for (final dir in commonDirs) {
+//     if (!(await dir.exists())) {
+//       debugPrint("Directory ${dir.path} doesn't exist");
+//       continue;
+//     }
+
+//     debugPrint("Scanning ${dir.path}...");
+    
+//     try {
+//       // Get all files recursively
+//       final fileEntities = dir.list(recursive: true);
+      
+//       await for (final entity in fileEntities) {
+//         // Skip if not a file or not an MP3
+//         if (entity is! File || !entity.path.toLowerCase().endsWith('.mp3')) {
+//           continue;
+//         }
+
+//         // Now we know it's a File object
+//         final file = entity;
+//         filesProcessed++;
+        
+//         if (filesProcessed % 10 == 0) {
+//           debugPrint("Processed $filesProcessed files...");
+//         }
+        
+//         try {
+//           final metadata = await MetadataRetriever.fromFile(file);
+//           final songName = metadata.trackName ?? path.basenameWithoutExtension(file.path);
+//           final artist = metadata.trackArtistNames ?? "Unknown Artist";
+//           final artistName = artist is List<String> ? artist.join(', ') : artist.toString();
+
+//           String imagePath = "assets/images/on_my_way.png";
+
+//           if (metadata.albumArt != null) {
+//             final tempDir = await getTemporaryDirectory();
+//             final filename = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+//             final imageFile = File('${tempDir.path}/$filename');
+//             await imageFile.writeAsBytes(metadata.albumArt!);
+//             imagePath = imageFile.path;
+//           }
+
+//           loadedSongs.add(Song(
+//             songName: songName,
+//             artistName: artistName,
+//             albumArtImagePath: imagePath,
+//             audioPath: file.path,
+//           ));
+//         } catch (e) {
+//           debugPrint("Error processing ${file.path}: $e");
+//         }
+//       }
+//     } catch (e) {
+//       debugPrint("Error scanning ${dir.path}: $e");
+//     }
+//   }
+
+//   debugPrint("Scan complete. Found ${loadedSongs.length} songs.");
+  
+//   _playlist.clear();
+//   _playlist.addAll(loadedSongs);
+//   notifyListeners();
+//   await _savePlaylistToJson();
+// }
+
+
   //load playlist from storage
   Future<void> loadSongsFromLocalStorage() async {
     final Directory dir = Directory('/storage/emulated/0/Download');
@@ -158,7 +240,7 @@ class PlaylistProvider extends ChangeNotifier {
         print('Artist: $artistName');
 
         // Default album art
-        String imagePath = "assets/images/tally.jpg";
+        String imagePath = "assets/images/on_my_way.png";
 
         // Save embedded image
         if (metadata.albumArt != null) {
@@ -185,6 +267,9 @@ class PlaylistProvider extends ChangeNotifier {
       await _savePlaylistToJson();
     }
   }
+
+
+  
 
   void play() async {
     final String path = _playlist[_currentSongIndex!].audioPath;
