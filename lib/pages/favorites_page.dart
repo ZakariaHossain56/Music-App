@@ -152,18 +152,29 @@ class _FavoritesPageState extends State<FavoritesPage> {
                             subtitle: Text(song.artistName),
                             onTap: () => goToSong(actualIndex),
                             trailing: IconButton(
-                              icon: const Icon(Icons.favorite, color: Colors.red),
+                              icon:
+                                  const Icon(Icons.favorite, color: Colors.red),
                               onPressed: () {
-                                final wasFavorite = value.favoriteSongIndices.contains(actualIndex);
+                                final wasFavorite = value.favoriteSongIndices
+                                    .contains(actualIndex);
                                 value.toggleFavorite(actualIndex);
 
                                 if (wasFavorite) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: const Text('Removed from favorites'),
+                                      content:
+                                          const Text('Removed from favorites'),
                                       backgroundColor: Colors.redAccent,
                                       behavior: SnackBarBehavior.floating,
-                                      duration: const Duration(seconds: 2),
+                                      duration: const Duration(seconds: 3),
+                                      action: SnackBarAction(
+                                        label: 'Undo',
+                                        textColor: Colors.white,
+                                        onPressed: () {
+                                          // Re-add the song to favorites
+                                          value.toggleFavorite(actualIndex);
+                                        },
+                                      ),
                                     ),
                                   );
                                 }
