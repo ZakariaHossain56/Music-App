@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, _) {
-        if (!themeProvider.isInitialized) {
+        if (!themeProvider.isInitialized) {           //Prevent rendering the real UI (HomePage) until the theme is ready.
           // Show splash/loading while theme loads
           return const MaterialApp(
             home: Scaffold(

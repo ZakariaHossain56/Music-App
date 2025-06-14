@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:music_app/components/mini_player.dart';
 import 'package:music_app/components/my_drawer.dart';
 import 'package:music_app/models/playlist_provider.dart';
 import 'package:music_app/models/song.dart';
@@ -120,23 +121,26 @@ class _HomePageState extends State<HomePage> {
 
       return Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search songs or artists...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+          Container(
+            margin: const EdgeInsets.only(left: 8, right: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search songs or artists...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -275,7 +279,15 @@ class _HomePageState extends State<HomePage> {
           Navigator.pop(context); // Close the drawer
         },
       ),
-      body: pages[_selectedIndex],
+      body: Stack(
+        children: [
+          pages[_selectedIndex],
+          const Align(
+            alignment: Alignment.bottomCenter,
+            child: MiniPlayerBar(), // Add the mini player here
+          ),
+        ],
+      ),
     );
   }
 }
