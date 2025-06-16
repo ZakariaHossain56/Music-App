@@ -47,7 +47,6 @@ class PlaylistProvider extends ChangeNotifier {
 
   bool get isDarkMode => _themeProvider.isDarkMode;
   //check for dark mode
-   
 
 // Inactivity timer to pause playback after 30 minutes of inactivity
   Timer? _inactivityTimer;
@@ -58,7 +57,6 @@ class PlaylistProvider extends ChangeNotifier {
   SnackBar? _currentSnackBar;
 
   Future<void> userInteracted() async {
-
     //check for dark mode
     final isDark = isDarkMode;
 
@@ -69,7 +67,7 @@ class PlaylistProvider extends ChangeNotifier {
     _inactivityTimer?.cancel();
 
     if (_isPlaying) {
-      _inactivityTimer = Timer(const Duration(seconds: 10), () async {
+      _inactivityTimer = Timer(const Duration(minutes: 30), () async {
         if (_isPlaying) {
           await pauseDueToInactivity();
           // Show persistent snackbar that won't auto-dismiss
@@ -337,6 +335,27 @@ class PlaylistProvider extends ChangeNotifier {
     }
   }
 
+  
+
+//for inactivity timer
+  Duration _lastKnownPosition = Duration.zero;
+  StreamSubscription<Duration>? _positionSubscription;
+  // Optional: don't seek if paused manually
+  bool _pausedByInactivity = false;
+
+  void _startListeningPosition() {
+    _positionSubscription?.cancel();
+    _positionSubscription = _audioPlayer.onPositionChanged.listen((pos) {
+      _lastKnownPosition = pos;
+    });
+  }
+
+  void _stopListeningPosition() {
+    _positionSubscription?.cancel();
+    _positionSubscription = null;
+  }
+
+
   void play() async {
     final String path = _playlist[_currentSongIndex!].audioPath;
     await _audioPlayer.stop(); // stop current song
@@ -344,46 +363,43 @@ class PlaylistProvider extends ChangeNotifier {
     _isPlaying = true;
     notifyListeners();
 
-    userInteracted();  // reset/start inactivity timer
+    userInteracted(); // reset/start inactivity timer
+     _startListeningPosition(); // start updating position continuously
   }
-
-//for inactivity timer
-  Duration _lastKnownPosition = Duration.zero;
 
 // Always update position when pausing
   Future<void> pause() async {
-    _inactivityTimer?.cancel();
+  _inactivityTimer?.cancel();
 
-    // Listen for actual emitted position (latest accurate)
-    _lastKnownPosition = await _audioPlayer.onPositionChanged.first;
+  // Use cached last known position, no need to await onPositionChanged.first
+  // _lastKnownPosition is already updated liv
+  await _audioPlayer.pause();
+  _isPlaying = false;
+  notifyListeners();
 
-    await _audioPlayer.pause();
-    _isPlaying = false;
-    notifyListeners();
+  _stopListeningPosition(); // stop position updates since paused
+}
+
+Future<void> pauseDueToInactivity() async {
+  await pause();
+  _pausedByInactivity = true;
+}
+
+Future<void> resume() async {
+  if (_pausedByInactivity) {
+    await _audioPlayer.seek(_lastKnownPosition);
   }
 
-// Optional: don't seek if paused manually
-  bool _pausedByInactivity = false;
+  await _audioPlayer.resume();
+  _isPlaying = true;
+  _pausedByInactivity = false;
+  notifyListeners();
 
-  Future<void> pauseDueToInactivity() async {
-    await pause();
-    _pausedByInactivity = true;
-  }
+  userInteracted(); // restart the inactivity timer
+  _startListeningPosition(); // resume position tracking
+}
 
-  Future<void> resume() async {
-    if (_pausedByInactivity) {
-      // Delay slightly to make sure previous pause has settled
-      await Future.delayed(const Duration(milliseconds: 200));
-      await _audioPlayer.seek(_lastKnownPosition);
-    }
 
-    await _audioPlayer.resume();
-    _isPlaying = true;
-    _pausedByInactivity = false;
-    notifyListeners();
-
-    userInteracted(); // restart the inactivity timer
-  }
 
   Future<void> pauseOrResume() async {
     if (_isPlaying) {

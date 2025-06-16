@@ -43,7 +43,7 @@ dependencies:
   shared_preferences: ^2.1.1
   marquee: ^2.3.0
 
-  # just_audio: ^0.9.36       # for audio playback
+  just_audio: ^0.9.36       # for audio playback
   # audio_service: ^0.18.12   # for background audio playback
   # audio_session: ^0.1.10    # for managing audio sessions
 
