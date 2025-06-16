@@ -219,54 +219,64 @@ class PlaylistProvider extends ChangeNotifier {
 // }
 
 
-  //load playlist from storage
-  Future<void> loadSongsFromLocalStorage() async {
-    final Directory dir = Directory('/storage/emulated/0/Download');
 
-    if (!dir.existsSync()) return;
+Future<void> loadSongsFromLocalStorage() async {
+  final Directory downloadDir = Directory('/storage/emulated/0/Download');
 
-    final List<Song> loadedSongs = [];
+  if (!downloadDir.existsSync()) return;
 
-    for (var file in dir.listSync()) {
-      if (file.path.endsWith('.mp3')) {
-        final metadata = await MetadataRetriever.fromFile(File(file.path));
-        final String songName =
-            metadata.trackName ?? file.uri.pathSegments.last;
-        final Object artist = metadata.trackArtistNames ?? "Unknown Artist";
-        final String artistName =
-            artist is List<String> ? (artist).join(', ') : artist.toString();
+  final List<Song> loadedSongs = [];
 
-        print('Song: $songName');
-        print('Artist: $artistName');
+  for (var file in downloadDir.listSync()) {
+    if (file.path.endsWith('.mp3')) {
+      final metadata = await MetadataRetriever.fromFile(File(file.path));
+      final String songName =
+          metadata.trackName ?? file.uri.pathSegments.last;
+      final Object artist = metadata.trackArtistNames ?? "Unknown Artist";
+      final String artistName =
+          artist is List<String> ? artist.join(', ') : artist.toString();
 
-        // Default album art
-        String imagePath = "assets/images/on_my_way.png";
+      print('Song: $songName');
+      print('Artist: $artistName');
 
-        // Save embedded image
-        if (metadata.albumArt != null) {
-          final tempDir = await getTemporaryDirectory();
-          final filename = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-          final imageFile = File('${tempDir.path}/$filename');
-          await imageFile.writeAsBytes(metadata.albumArt!);
-          imagePath = imageFile.path;
+      // Default album art
+      String imagePath = "assets/images/on_my_way.png";
+
+      // Save embedded image in app-private directory
+      if (metadata.albumArt != null) {
+        final Directory appDocDir = await getApplicationDocumentsDirectory();
+        final String imageDirPath = '${appDocDir.path}/album_arts';
+
+        final Directory imageDir = Directory(imageDirPath);
+        if (!imageDir.existsSync()) {
+          await imageDir.create(recursive: true);
         }
 
-        loadedSongs.add(Song(
-          songName: songName,
-          artistName: artistName,
-          albumArtImagePath: imagePath,
-          audioPath: file.path,
-        ));
-      }
-    }
+        final String filename =
+            '${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final File imageFile = File('$imageDirPath/$filename');
 
-    if (loadedSongs.isNotEmpty) {
-      _playlist.clear();
-      _playlist.addAll(loadedSongs);
-      notifyListeners();
-      await _savePlaylistToJson();
+        await imageFile.writeAsBytes(metadata.albumArt!);
+        imagePath = imageFile.path;
+      }
+
+      loadedSongs.add(Song(
+        songName: songName,
+        artistName: artistName,
+        albumArtImagePath: imagePath,
+        audioPath: file.path,
+      ));
     }
   }
+
+  if (loadedSongs.isNotEmpty) {
+    _playlist.clear();
+    _playlist.addAll(loadedSongs);
+    notifyListeners();
+    await _savePlaylistToJson();
+  }
+}
+
 
 
   
