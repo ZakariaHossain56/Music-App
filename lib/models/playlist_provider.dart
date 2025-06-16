@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -37,6 +38,43 @@ class PlaylistProvider extends ChangeNotifier {
     //       audioPath: "audio/Chaleya.mp3"),
   ];
 
+// Inactivity timer to pause playback after 30 minutes of inactivity
+  Timer? _inactivityTimer;
+
+// Add this to your PlaylistProvider class
+  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+  SnackBar? _currentSnackBar;
+
+  Future<void> userInteracted() async {
+    // Remove any existing snackbar immediately
+    scaffoldMessengerKey.currentState?.removeCurrentSnackBar();
+    _currentSnackBar = null;
+
+    _inactivityTimer?.cancel();
+
+    if (_isPlaying) {
+      _inactivityTimer = Timer(const Duration(seconds: 10), () async {
+        if (_isPlaying) {
+          await pause();
+          // Show persistent snackbar that won't auto-dismiss
+          _currentSnackBar = SnackBar(
+            content: const Text('Playback paused due to inactivity'),
+            duration: const Duration(days: 1),
+            action: SnackBarAction(
+              label: 'Dismiss',
+              onPressed: () {
+                scaffoldMessengerKey.currentState?.removeCurrentSnackBar();
+              },
+            ),
+          );
+          scaffoldMessengerKey.currentState?.showSnackBar(_currentSnackBar!);
+        }
+      });
+    }
+    notifyListeners();
+  }
+
   //favorite songs
   // A set to keep track of favorite song indices
   final Set<int> _favoriteSongIndices = {};
@@ -69,6 +107,8 @@ class PlaylistProvider extends ChangeNotifier {
 
   bool _isShuffling = false;
   LoopMode _loopMode = LoopMode.off; // We'll define this enum below
+
+  bool _showInactivityWarning = false;
 
   //constructor
   PlaylistProvider() {
@@ -138,7 +178,6 @@ class PlaylistProvider extends ChangeNotifier {
     }
   }
 
-
 //   Future<void> loadSongsFromLocalStorage() async {
 //   final hasPermission = await requestStoragePermission();
 //   if (!hasPermission) return;
@@ -160,11 +199,11 @@ class PlaylistProvider extends ChangeNotifier {
 //     }
 
 //     debugPrint("Scanning ${dir.path}...");
-    
+
 //     try {
 //       // Get all files recursively
 //       final fileEntities = dir.list(recursive: true);
-      
+
 //       await for (final entity in fileEntities) {
 //         // Skip if not a file or not an MP3
 //         if (entity is! File || !entity.path.toLowerCase().endsWith('.mp3')) {
@@ -174,11 +213,11 @@ class PlaylistProvider extends ChangeNotifier {
 //         // Now we know it's a File object
 //         final file = entity;
 //         filesProcessed++;
-        
+
 //         if (filesProcessed % 10 == 0) {
 //           debugPrint("Processed $filesProcessed files...");
 //         }
-        
+
 //         try {
 //           final metadata = await MetadataRetriever.fromFile(file);
 //           final songName = metadata.trackName ?? path.basenameWithoutExtension(file.path);
@@ -211,75 +250,69 @@ class PlaylistProvider extends ChangeNotifier {
 //   }
 
 //   debugPrint("Scan complete. Found ${loadedSongs.length} songs.");
-  
+
 //   _playlist.clear();
 //   _playlist.addAll(loadedSongs);
 //   notifyListeners();
 //   await _savePlaylistToJson();
 // }
 
+  Future<void> loadSongsFromLocalStorage() async {
+    final Directory downloadDir = Directory('/storage/emulated/0/Download');
 
+    if (!downloadDir.existsSync()) return;
 
-Future<void> loadSongsFromLocalStorage() async {
-  final Directory downloadDir = Directory('/storage/emulated/0/Download');
+    final List<Song> loadedSongs = [];
 
-  if (!downloadDir.existsSync()) return;
+    for (var file in downloadDir.listSync()) {
+      if (file.path.endsWith('.mp3')) {
+        final metadata = await MetadataRetriever.fromFile(File(file.path));
+        final String songName =
+            metadata.trackName ?? file.uri.pathSegments.last;
+        final Object artist = metadata.trackArtistNames ?? "Unknown Artist";
+        final String artistName =
+            artist is List<String> ? artist.join(', ') : artist.toString();
 
-  final List<Song> loadedSongs = [];
+        print('Song: $songName');
+        print('Artist: $artistName');
 
-  for (var file in downloadDir.listSync()) {
-    if (file.path.endsWith('.mp3')) {
-      final metadata = await MetadataRetriever.fromFile(File(file.path));
-      final String songName =
-          metadata.trackName ?? file.uri.pathSegments.last;
-      final Object artist = metadata.trackArtistNames ?? "Unknown Artist";
-      final String artistName =
-          artist is List<String> ? artist.join(', ') : artist.toString();
+        // Default album art
+        String imagePath = "assets/images/on_my_way.png";
 
-      print('Song: $songName');
-      print('Artist: $artistName');
+        // Save embedded image in app-private directory
+        if (metadata.albumArt != null) {
+          final Directory appDocDir = await getApplicationDocumentsDirectory();
+          final String imageDirPath = '${appDocDir.path}/album_arts';
 
-      // Default album art
-      String imagePath = "assets/images/on_my_way.png";
+          final Directory imageDir = Directory(imageDirPath);
+          if (!imageDir.existsSync()) {
+            await imageDir.create(recursive: true);
+          }
 
-      // Save embedded image in app-private directory
-      if (metadata.albumArt != null) {
-        final Directory appDocDir = await getApplicationDocumentsDirectory();
-        final String imageDirPath = '${appDocDir.path}/album_arts';
+          final String filename =
+              '${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final File imageFile = File('$imageDirPath/$filename');
 
-        final Directory imageDir = Directory(imageDirPath);
-        if (!imageDir.existsSync()) {
-          await imageDir.create(recursive: true);
+          await imageFile.writeAsBytes(metadata.albumArt!);
+          imagePath = imageFile.path;
         }
 
-        final String filename =
-            '${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final File imageFile = File('$imageDirPath/$filename');
-
-        await imageFile.writeAsBytes(metadata.albumArt!);
-        imagePath = imageFile.path;
+        loadedSongs.add(Song(
+          songName: songName,
+          artistName: artistName,
+          albumArtImagePath: imagePath,
+          audioPath: file.path,
+        ));
       }
+    }
 
-      loadedSongs.add(Song(
-        songName: songName,
-        artistName: artistName,
-        albumArtImagePath: imagePath,
-        audioPath: file.path,
-      ));
+    if (loadedSongs.isNotEmpty) {
+      _playlist.clear();
+      _playlist.addAll(loadedSongs);
+      notifyListeners();
+      await _savePlaylistToJson();
     }
   }
-
-  if (loadedSongs.isNotEmpty) {
-    _playlist.clear();
-    _playlist.addAll(loadedSongs);
-    notifyListeners();
-    await _savePlaylistToJson();
-  }
-}
-
-
-
-  
 
   void play() async {
     final String path = _playlist[_currentSongIndex!].audioPath;
@@ -289,28 +322,26 @@ Future<void> loadSongsFromLocalStorage() async {
     notifyListeners();
   }
 
-  //pause current song
-  void pause() async {
+  Future<void> pause() async {
+    _inactivityTimer?.cancel(); // Cancel timer when manually pausing
     await _audioPlayer.pause();
     _isPlaying = false;
     notifyListeners();
   }
 
-  //resume playing
-  void resume() async {
+  Future<void> resume() async {
     await _audioPlayer.resume();
     _isPlaying = true;
     notifyListeners();
+    userInteracted(); // Restart inactivity timer
   }
 
-  //pause or resume
-  void pauseOrResume() async {
+  Future<void> pauseOrResume() async {
     if (_isPlaying) {
-      pause();
+      await pause();
     } else {
-      resume();
+      await resume();
     }
-    notifyListeners();
   }
 
   //seek to a specific position in the current song
@@ -422,6 +453,8 @@ Future<void> loadSongsFromLocalStorage() async {
   //dispose audio player
   @override
   void dispose() {
+    _inactivityTimer?.cancel();
+    scaffoldMessengerKey.currentState?.removeCurrentSnackBar();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -460,6 +493,9 @@ Future<void> loadSongsFromLocalStorage() async {
   //get shuffling and loop mode
   bool get isShuffling => _isShuffling;
   LoopMode get loopMode => _loopMode;
+
+  //get show inactivity warning
+  bool get showInactivityWarning => _showInactivityWarning;
 
   //S E T T E R S
   set currentSongIndex(int? newIndex) {
