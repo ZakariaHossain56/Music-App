@@ -10,7 +10,11 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => PlaylistProvider()),
+        ChangeNotifierProxyProvider<ThemeProvider, PlaylistProvider>(
+          create: (_) => PlaylistProvider(),
+          update: (_, themeProvider, playlistProvider) =>
+              playlistProvider!..updateTheme(themeProvider),
+        ),
       ],
       child: const MyApp(),
     ),
@@ -19,8 +23,6 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
-  
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +36,6 @@ class MyApp extends StatelessWidget {
           );
         }
 
-        // Wrap entire app with Listener to catch all gestures
         return Listener(
           behavior: HitTestBehavior.translucent,
           onPointerDown: (_) => playlistProvider.userInteracted(),

@@ -5,11 +5,13 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:music_app/models/song.dart';
+import 'package:music_app/themes/theme_provider.dart';
 import 'package:music_app/utils/permissions.dart';
 import 'package:path_provider/path_provider.dart'; // optional if you want to use app directory
 import 'package:flutter_media_metadata/flutter_media_metadata.dart';
 import 'dart:convert'; // For json
 import 'package:path/path.dart' as path;
+import 'package:provider/provider.dart';
 
 class PlaylistProvider extends ChangeNotifier {
   //playlist of songs
@@ -38,6 +40,15 @@ class PlaylistProvider extends ChangeNotifier {
     //       audioPath: "audio/Chaleya.mp3"),
   ];
 
+  late ThemeProvider _themeProvider;
+  void updateTheme(ThemeProvider themeProvider) {
+    _themeProvider = themeProvider;
+  }
+
+  bool get isDarkMode => _themeProvider.isDarkMode;
+  //check for dark mode
+   
+
 // Inactivity timer to pause playback after 30 minutes of inactivity
   Timer? _inactivityTimer;
 
@@ -47,6 +58,10 @@ class PlaylistProvider extends ChangeNotifier {
   SnackBar? _currentSnackBar;
 
   Future<void> userInteracted() async {
+
+    //check for dark mode
+    final isDark = isDarkMode;
+
     // Remove any existing snackbar immediately
     scaffoldMessengerKey.currentState?.removeCurrentSnackBar();
     _currentSnackBar = null;
@@ -56,13 +71,21 @@ class PlaylistProvider extends ChangeNotifier {
     if (_isPlaying) {
       _inactivityTimer = Timer(const Duration(seconds: 10), () async {
         if (_isPlaying) {
-          await pause();
+          await pauseDueToInactivity();
           // Show persistent snackbar that won't auto-dismiss
           _currentSnackBar = SnackBar(
-            content: const Text('Playback paused due to inactivity'),
+            content: Text(
+              'Playback paused due to inactivity',
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.white, // Text color
+              ),
+            ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
             duration: const Duration(days: 1),
             action: SnackBarAction(
               label: 'Dismiss',
+              textColor: Colors.white,
               onPressed: () {
                 scaffoldMessengerKey.currentState?.removeCurrentSnackBar();
               },
@@ -320,20 +343,46 @@ class PlaylistProvider extends ChangeNotifier {
     await _audioPlayer.play(DeviceFileSource(path)); // play from file path
     _isPlaying = true;
     notifyListeners();
+
+    userInteracted();  // reset/start inactivity timer
   }
 
+//for inactivity timer
+  Duration _lastKnownPosition = Duration.zero;
+
+// Always update position when pausing
   Future<void> pause() async {
-    _inactivityTimer?.cancel(); // Cancel timer when manually pausing
+    _inactivityTimer?.cancel();
+
+    // Listen for actual emitted position (latest accurate)
+    _lastKnownPosition = await _audioPlayer.onPositionChanged.first;
+
     await _audioPlayer.pause();
     _isPlaying = false;
     notifyListeners();
   }
 
+// Optional: don't seek if paused manually
+  bool _pausedByInactivity = false;
+
+  Future<void> pauseDueToInactivity() async {
+    await pause();
+    _pausedByInactivity = true;
+  }
+
   Future<void> resume() async {
+    if (_pausedByInactivity) {
+      // Delay slightly to make sure previous pause has settled
+      await Future.delayed(const Duration(milliseconds: 200));
+      await _audioPlayer.seek(_lastKnownPosition);
+    }
+
     await _audioPlayer.resume();
     _isPlaying = true;
+    _pausedByInactivity = false;
     notifyListeners();
-    userInteracted(); // Restart inactivity timer
+
+    userInteracted(); // restart the inactivity timer
   }
 
   Future<void> pauseOrResume() async {
